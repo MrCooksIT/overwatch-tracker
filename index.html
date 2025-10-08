@@ -106,7 +106,16 @@
 
             const addMatch = () => {
                 if (currentMatch.opponent && currentMatch.map) {
-                    setMatches([...matches, { ...currentMatch, id: Date.now() }]);
+                    const newMatch = {
+                        ...currentMatch,
+                        id: Date.now(),
+                        tankHeroes: [...currentMatch.tankHeroes],
+                        dps1Heroes: [...currentMatch.dps1Heroes],
+                        dps2Heroes: [...currentMatch.dps2Heroes],
+                        support1Heroes: [...currentMatch.support1Heroes],
+                        support2Heroes: [...currentMatch.support2Heroes]
+                    };
+                    setMatches([...matches, newMatch]);
                     setCurrentMatch({
                         opponent: '',
                         map: '',
@@ -118,6 +127,8 @@
                         support2Heroes: [],
                         notes: ''
                     });
+                } else {
+                    alert('Please enter opponent name and select a map!');
                 }
             };
 
@@ -128,31 +139,43 @@
             };
 
             const exportToCSV = () => {
+                if (matches.length === 0) {
+                    alert('No matches to export!');
+                    return;
+                }
+                
                 const headers = ['Opponent', 'Map', 'Result', 'Tank Heroes', 'DPS 1 Heroes', 'DPS 2 Heroes', 'Support 1 Heroes', 'Support 2 Heroes', 'Notes'];
                 const rows = matches.map(m => [
-                    m.opponent,
-                    m.map,
-                    m.result,
-                    m.tankHeroes.join(' → '),
-                    m.dps1Heroes.join(' → '),
-                    m.dps2Heroes.join(' → '),
-                    m.support1Heroes.join(' → '),
-                    m.support2Heroes.join(' → '),
-                    m.notes
+                    m.opponent || '',
+                    m.map || '',
+                    m.result || '',
+                    (m.tankHeroes || []).join(' → '),
+                    (m.dps1Heroes || []).join(' → '),
+                    (m.dps2Heroes || []).join(' → '),
+                    (m.support1Heroes || []).join(' → '),
+                    (m.support2Heroes || []).join(' → '),
+                    m.notes || ''
                 ]);
                 
                 const csvContent = [
                     headers.join(','),
-                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
                 ].join('\n');
                 
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `overwatch_tournament_${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
+                try {
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `overwatch_tournament_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Export error:', error);
+                    alert('Error exporting CSV. Check console for details.');
+                }
             };
 
             const clearAllData = () => {
